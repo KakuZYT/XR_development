@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 6014af269cb2bf0489bc8a909811e6ff
+timeCreated: 1560811701
+licenseType: Store
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 148724
+  packageName: 3D Skybox PRO - Swiss Freebies
+  packageVersion: 2023.1.0
+  assetPath: Assets/3D Skybox/Swiss Freebies/Materials/hdr/03-Urban Zip Line.mat
+  uploadId: 558381
