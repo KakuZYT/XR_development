@@ -1,4 +1,4 @@
-﻿[Ll]ibrary/
+[Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
 [Bb]uild/
@@ -53,3 +53,8 @@ crashlytics-build.properties
 
 # Large HDR skybox textures
 Assets/3D Skybox/Swiss Freebies/Textures/hdr/*.exr
+
+# Large Files
+Assets/Ocean_Floor/Meshes/SM_Floor.fbx
+Assets/Ocean_Floor/Textures/T_Terrain_Inv_Mask.TGA
+Assets/Ocean_Floor/Textures/T_Terrain_Mask.TGA

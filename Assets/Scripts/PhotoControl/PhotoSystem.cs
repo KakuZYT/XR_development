@@ -18,8 +18,9 @@ public class PhotoSystem : MonoBehaviour
     public Image photoPreviewImage;
 
     [Header("Detection")]
-    public float detectDistance = 8f;
+    public float detectDistance = 50f;
     public string targetTag = "PhotoTarget";
+    public LayerMask detectionMask = ~0;
 
     [Header("Preview Settings")]
     public float previewWidth = 320f;
@@ -34,6 +35,9 @@ public class PhotoSystem : MonoBehaviour
 
     private Coroutine flashCoroutine;
     private Coroutine previewCoroutine;
+
+    private Texture2D currentScreenshot;
+    private Sprite currentPreviewSprite;
 
     void Start()
     {
@@ -73,9 +77,15 @@ public class PhotoSystem : MonoBehaviour
 
         Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
 
-        if (Physics.Raycast(ray, out RaycastHit hit, detectDistance))
+        Debug.DrawRay(ray.origin, ray.direction * detectDistance, Color.red);
+
+        if (Physics.Raycast(ray, out RaycastHit hit, detectDistance, detectionMask))
         {
+            Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.green);
+
             GameObject hitObject = hit.collider.gameObject;
+
+            Debug.Log($"Hit: {hitObject.name}, Tag: {hitObject.tag}, Layer: {LayerMask.LayerToName(hitObject.layer)}");
 
             if (hitObject.CompareTag(targetTag))
             {
@@ -116,7 +126,6 @@ public class PhotoSystem : MonoBehaviour
     {
         if (!canTakePhoto || isTakingPhoto || currentTarget == null)
         {
-            Debug.Log("Cannot take photo now.");
             return;
         }
 
@@ -134,10 +143,15 @@ public class PhotoSystem : MonoBehaviour
 
         yield return new WaitForEndOfFrame();
 
-        Texture2D screenshot = ScreenCapture.CaptureScreenshotAsTexture();
+        if (currentScreenshot != null)
+        {
+            Destroy(currentScreenshot);
+        }
 
-        SavePhotoToImgFolder(screenshot);
-        ShowPhotoPreview(screenshot);
+        currentScreenshot = ScreenCapture.CaptureScreenshotAsTexture();
+
+        SavePhotoToImgFolder(currentScreenshot);
+        ShowPhotoPreview(currentScreenshot);
 
         if (flashCoroutine != null)
         {
@@ -145,8 +159,6 @@ public class PhotoSystem : MonoBehaviour
         }
 
         flashCoroutine = StartCoroutine(FlashEffect());
-
-        Debug.Log("Photo captured.");
 
         yield return new WaitForSeconds(0.3f);
 
@@ -173,8 +185,6 @@ public class PhotoSystem : MonoBehaviour
         string filePath = Path.Combine(folderPath, fileName);
 
         File.WriteAllBytes(filePath, pngData);
-
-        Debug.Log("Photo saved to: " + filePath);
     }
 
     void ShowPhotoPreview(Texture2D texture)
@@ -186,29 +196,23 @@ public class PhotoSystem : MonoBehaviour
 
         if (photoPreviewPanel == null || photoPreviewImage == null)
         {
-            Debug.LogWarning("Photo preview UI is not assigned.");
             return;
         }
 
         SetupPreviewUI();
 
-        Texture2D previewTexture = new Texture2D(
-            texture.width,
-            texture.height,
-            TextureFormat.RGBA32,
-            false
-        );
+        if (currentPreviewSprite != null)
+        {
+            Destroy(currentPreviewSprite);
+        }
 
-        previewTexture.SetPixels(texture.GetPixels());
-        previewTexture.Apply();
-
-        Sprite previewSprite = Sprite.Create(
-            previewTexture,
-            new Rect(0, 0, previewTexture.width, previewTexture.height),
+        currentPreviewSprite = Sprite.Create(
+            texture,
+            new Rect(0, 0, texture.width, texture.height),
             new Vector2(0.5f, 0.5f)
         );
 
-        photoPreviewImage.sprite = previewSprite;
+        photoPreviewImage.sprite = currentPreviewSprite;
         photoPreviewImage.color = Color.white;
         photoPreviewImage.preserveAspect = true;
         photoPreviewImage.raycastTarget = false;
@@ -403,7 +407,7 @@ public class PhotoSystem : MonoBehaviour
 
     string GetImgFolderPath()
     {
-        return Path.Combine(Application.dataPath, "img");
+        return Path.Combine(Application.persistentDataPath, "img");
     }
 
     void CreateImgFolderIfNeeded()
@@ -413,7 +417,6 @@ public class PhotoSystem : MonoBehaviour
         if (!Directory.Exists(folderPath))
         {
             Directory.CreateDirectory(folderPath);
-            Debug.Log("Created img folder: " + folderPath);
         }
     }
 }

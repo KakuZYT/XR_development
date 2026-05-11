@@ -86,9 +86,7 @@ public class ObjectInfoPanelManager : MonoBehaviour
             return;
         }
 
-        infoText.text =
-            $"<b>{currentInfoData.objectName}</b>\n\n" +
-            currentInfoData.description;
+        infoText.text = currentInfoData.description;
 
         KeepCanvasInFrontOfPlayer();
 

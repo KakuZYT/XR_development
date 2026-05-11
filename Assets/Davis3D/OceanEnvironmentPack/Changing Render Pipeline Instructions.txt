@@ -1,0 +1,27 @@
+To change render pipeline to URP or BasicRP, please do the following:
+
+1.) Delete all folders except for "Textures"
+The folders you should delete, may include, but not be limited to:
+- Materials
+- Meshes
+- Prefabs
+- Scenes
+- Scripts
+- Shaders
+- Sounds
+
+2.) Extract your chosen unitypackage patch file
+URP Patch
+or 
+BasicRP Patch
+
+(These Patch files will be located in the root directory of your package)
+
+3.) Open Project Settings (Edit > Project Settings)
+Click on the "Player" tab, and set the Color space to "Linear" 
+
+4.) If you ever encounter any issues with shaders not working, please contact me at justin@davis3d.com
+Sometimes Amplify Shader Editor requires a recompile of the shaders for newer engine versions in order for them to work correctly.
+So when that happens, I will upload shaders to this location until the latest update is approved by the Unity Asset Store Administrators.
+https://drive.google.com/drive/folders/1aJPswm__rAwNBL2Q1eXyZ7fRdz77rKy3?usp=sharing
+ 
