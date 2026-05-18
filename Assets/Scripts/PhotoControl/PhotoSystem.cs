@@ -19,7 +19,9 @@ public class PhotoSystem : MonoBehaviour
 
     [Header("Detection")]
     public float detectDistance = 50f;
+    public float detectRadius = 0.35f;
     public string targetTag = "PhotoTarget";
+    public bool allowObjectsWithInfoData = true;
     public LayerMask detectionMask = ~0;
 
     [Header("Preview Settings")]
@@ -30,6 +32,7 @@ public class PhotoSystem : MonoBehaviour
     public float previewShowTime = 3f;
 
     private GameObject currentTarget;
+    private ObjectInfoData currentTargetInfo;
     private bool canTakePhoto = false;
     private bool isTakingPhoto = false;
 
@@ -79,17 +82,22 @@ public class PhotoSystem : MonoBehaviour
 
         Debug.DrawRay(ray.origin, ray.direction * detectDistance, Color.red);
 
-        if (Physics.Raycast(ray, out RaycastHit hit, detectDistance, detectionMask))
+        RaycastHit[] hits = Physics.SphereCastAll(ray, detectRadius, detectDistance, detectionMask);
+        System.Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+
+        for (int i = 0; i < hits.Length; i++)
         {
-            Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.green);
+            RaycastHit hit = hits[i];
 
             GameObject hitObject = hit.collider.gameObject;
+            ObjectInfoData hitInfoData = FindObjectInfoData(hitObject);
 
-            Debug.Log($"Hit: {hitObject.name}, Tag: {hitObject.tag}, Layer: {LayerMask.LayerToName(hitObject.layer)}");
+            Debug.Log($"Photo check hit: {hitObject.name}, Tag: {hitObject.tag}, Layer: {LayerMask.LayerToName(hitObject.layer)}");
 
-            if (hitObject.CompareTag(targetTag))
+            if (hitObject.CompareTag(targetTag) || (allowObjectsWithInfoData && hitInfoData != null))
             {
-                currentTarget = hitObject;
+                currentTarget = hitInfoData != null ? hitInfoData.gameObject : hitObject;
+                currentTargetInfo = hitInfoData;
                 canTakePhoto = true;
 
                 if (photoCanvas != null && !photoCanvas.activeSelf)
@@ -107,6 +115,7 @@ public class PhotoSystem : MonoBehaviour
         }
 
         currentTarget = null;
+        currentTargetInfo = null;
         canTakePhoto = false;
 
         bool previewIsShowing = photoPreviewPanel != null && photoPreviewPanel.activeSelf;
@@ -120,6 +129,23 @@ public class PhotoSystem : MonoBehaviour
         {
             photoCanvas.SetActive(false);
         }
+    }
+
+    ObjectInfoData FindObjectInfoData(GameObject hitObject)
+    {
+        if (hitObject == null)
+        {
+            return null;
+        }
+
+        ObjectInfoData infoData = hitObject.GetComponentInParent<ObjectInfoData>();
+
+        if (infoData != null)
+        {
+            return infoData;
+        }
+
+        return hitObject.GetComponentInChildren<ObjectInfoData>();
     }
 
     public void TakePhoto()
@@ -148,9 +174,12 @@ public class PhotoSystem : MonoBehaviour
             Destroy(currentScreenshot);
         }
 
+        GameObject photographedTarget = currentTarget;
+        ObjectInfoData photographedInfo = currentTargetInfo;
+
         currentScreenshot = ScreenCapture.CaptureScreenshotAsTexture();
 
-        SavePhotoToImgFolder(currentScreenshot);
+        SavePhotoToImgFolder(currentScreenshot, photographedTarget, photographedInfo);
         ShowPhotoPreview(currentScreenshot);
 
         if (flashCoroutine != null)
@@ -170,7 +199,7 @@ public class PhotoSystem : MonoBehaviour
         }
     }
 
-    void SavePhotoToImgFolder(Texture2D texture)
+    void SavePhotoToImgFolder(Texture2D texture, GameObject photographedTarget, ObjectInfoData photographedInfo)
     {
         byte[] pngData = texture.EncodeToPNG();
 
@@ -185,6 +214,45 @@ public class PhotoSystem : MonoBehaviour
         string filePath = Path.Combine(folderPath, fileName);
 
         File.WriteAllBytes(filePath, pngData);
+        SavePhotoDescription(filePath, photographedTarget, photographedInfo);
+    }
+
+    void SavePhotoDescription(string photoPath, GameObject photographedTarget, ObjectInfoData photographedInfo)
+    {
+        string descriptionPath = Path.ChangeExtension(photoPath, ".txt");
+        string descriptionText = GetTargetDescription(photographedTarget, photographedInfo);
+
+        File.WriteAllText(descriptionPath, descriptionText);
+    }
+
+    string GetTargetDescription(GameObject photographedTarget, ObjectInfoData photographedInfo)
+    {
+        if (photographedTarget == null)
+        {
+            return "Unknown target";
+        }
+
+        ObjectInfoData infoData = photographedInfo;
+
+        if (infoData == null)
+        {
+            infoData = photographedTarget.GetComponentInParent<ObjectInfoData>();
+        }
+
+        if (infoData == null)
+        {
+            infoData = photographedTarget.GetComponentInChildren<ObjectInfoData>();
+        }
+
+        if (infoData == null)
+        {
+            return photographedTarget.name;
+        }
+
+        string title = string.IsNullOrWhiteSpace(infoData.objectName) ? photographedTarget.name : infoData.objectName;
+        string description = string.IsNullOrWhiteSpace(infoData.description) ? "No description available." : infoData.description;
+
+        return title + "\n\n" + description;
     }
 
     void ShowPhotoPreview(Texture2D texture)

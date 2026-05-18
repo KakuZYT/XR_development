@@ -28,6 +28,24 @@ public class SimpleXRHoverInfo : MonoBehaviour
 
     private void Awake()
     {
+        ObjectInfoData infoData = GetComponent<ObjectInfoData>();
+
+        if (infoData == null)
+        {
+            infoData = GetComponentInParent<ObjectInfoData>();
+        }
+
+        if (infoData == null)
+        {
+            infoData = GetComponentInChildren<ObjectInfoData>();
+        }
+
+        if (infoData != null)
+        {
+            objectName = infoData.objectName;
+            description = infoData.description;
+        }
+
         interactable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
         interactable.firstHoverEntered.AddListener(OnXRHoverEntered);
         interactable.lastHoverExited.AddListener(OnXRHoverExited);

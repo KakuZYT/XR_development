@@ -13,6 +13,7 @@ public class DescentTransitionController : MonoBehaviour
     [SerializeField] private float descentDuration = 6f;
 
     [Header("Next Scene")]
+    [SerializeField] private bool loadNextSceneAfterDescent = false;
     [SerializeField] private string nextSceneName = "03_Coral_Reef_Explore";
 
     private void Start()
@@ -45,6 +46,10 @@ public class DescentTransitionController : MonoBehaviour
         }
 
         xrOrigin.position = endPosition;
-        SceneManager.LoadScene(nextSceneName);
+
+        if (loadNextSceneAfterDescent && !string.IsNullOrEmpty(nextSceneName))
+        {
+            SceneManager.LoadScene(nextSceneName);
+        }
     }
 }

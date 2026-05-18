@@ -56,7 +56,12 @@ public class ObjectInfoPanelManager : MonoBehaviour
     {
         GameObject targetObject = args.interactableObject.transform.gameObject;
 
-        ObjectInfoData infoData = targetObject.GetComponent<ObjectInfoData>();
+        ObjectInfoData infoData = targetObject.GetComponentInParent<ObjectInfoData>();
+
+        if (infoData == null)
+        {
+            infoData = targetObject.GetComponentInChildren<ObjectInfoData>();
+        }
 
         if (infoData == null)
         {
@@ -86,7 +91,9 @@ public class ObjectInfoPanelManager : MonoBehaviour
             return;
         }
 
-        infoText.text = currentInfoData.description;
+        infoText.text =
+            $"<b>{currentInfoData.objectName}</b>\n\n" +
+            currentInfoData.description;
 
         KeepCanvasInFrontOfPlayer();
 

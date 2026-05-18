@@ -137,7 +137,7 @@ public class LaserInfoViewer : MonoBehaviour
 
         foreach (RaycastHit hit in hits)
         {
-            ObjectInfoData infoData = hit.collider.GetComponentInParent<ObjectInfoData>();
+            ObjectInfoData infoData = FindObjectInfoData(hit.collider.gameObject);
 
             if (infoData != null)
             {
@@ -147,6 +147,23 @@ public class LaserInfoViewer : MonoBehaviour
         }
 
         return null;
+    }
+
+    private ObjectInfoData FindObjectInfoData(GameObject hitObject)
+    {
+        if (hitObject == null)
+        {
+            return null;
+        }
+
+        ObjectInfoData infoData = hitObject.GetComponentInParent<ObjectInfoData>();
+
+        if (infoData != null)
+        {
+            return infoData;
+        }
+
+        return hitObject.GetComponentInChildren<ObjectInfoData>();
     }
 
     private void ShowInfoPanel(ObjectInfoData targetInfo)

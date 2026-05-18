@@ -6,7 +6,9 @@ public class ObjectInfoRaycastViewer : MonoBehaviour
     [Header("Raycast Settings")]
     [SerializeField] private Camera playerCamera;
     [SerializeField] private float rayDistance = 20f;
+    [SerializeField] private float sphereRadius = 0.25f;
     [SerializeField] private float showDelay = 3f;
+    [SerializeField] private LayerMask raycastLayers = ~0;
 
     [Header("UI References")]
     [SerializeField] private GameObject infoCanvas;
@@ -52,15 +54,7 @@ public class ObjectInfoRaycastViewer : MonoBehaviour
 
         Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
 
-        bool hitSomething = Physics.Raycast(ray, out RaycastHit hit, rayDistance);
-
-        if (!hitSomething)
-        {
-            ResetPanel();
-            return;
-        }
-
-        ObjectInfoData infoData = hit.collider.GetComponentInParent<ObjectInfoData>();
+        ObjectInfoData infoData = FindTarget(ray);
 
         if (infoData == null)
         {
@@ -86,6 +80,48 @@ public class ObjectInfoRaycastViewer : MonoBehaviour
         {
             ShowPanel(infoData);
         }
+    }
+
+    private ObjectInfoData FindTarget(Ray ray)
+    {
+        RaycastHit[] hits = Physics.SphereCastAll(
+            ray,
+            sphereRadius,
+            rayDistance,
+            raycastLayers,
+            QueryTriggerInteraction.Ignore
+        );
+
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (RaycastHit hit in hits)
+        {
+            ObjectInfoData infoData = FindObjectInfoData(hit.collider.gameObject);
+
+            if (infoData != null)
+            {
+                return infoData;
+            }
+        }
+
+        return null;
+    }
+
+    private ObjectInfoData FindObjectInfoData(GameObject hitObject)
+    {
+        if (hitObject == null)
+        {
+            return null;
+        }
+
+        ObjectInfoData infoData = hitObject.GetComponentInParent<ObjectInfoData>();
+
+        if (infoData != null)
+        {
+            return infoData;
+        }
+
+        return hitObject.GetComponentInChildren<ObjectInfoData>();
     }
 
     private void ShowPanel(ObjectInfoData infoData)
