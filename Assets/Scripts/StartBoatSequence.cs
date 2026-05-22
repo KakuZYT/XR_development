@@ -23,6 +23,7 @@ public class StartBoatSequence : MonoBehaviour
 
     [Header("Scene")]
     [SerializeField] private string nextSceneName = "02_Descent_Transition";
+    [SerializeField] private float asyncLoadMinimumFadeTime = 0.25f;
 
     [Header("Movement")]
     [SerializeField] private float groundOffset = 0.05f;
@@ -87,6 +88,15 @@ public class StartBoatSequence : MonoBehaviour
         StartCoroutine(SequenceRoutine());
     }
 
+    public void ExitGame()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+
     private IEnumerator SequenceRoutine()
     {
         isRunning = true;
@@ -102,8 +112,7 @@ public class StartBoatSequence : MonoBehaviour
 
         yield return FadeToBlack();
 
-        Debug.Log("Loading scene: " + nextSceneName);
-        SceneManager.LoadScene(nextSceneName);
+        yield return LoadNextSceneAsync();
     }
 
     private IEnumerator MovePlayerToBoatWithCollision()
@@ -183,5 +192,40 @@ public class StartBoatSequence : MonoBehaviour
 
         color.a = 1f;
         fadeImage.color = color;
+    }
+
+    private IEnumerator LoadNextSceneAsync()
+    {
+        if (string.IsNullOrEmpty(nextSceneName))
+        {
+            Debug.LogError("Next scene name is empty.");
+            yield break;
+        }
+
+        Debug.Log("Loading scene async: " + nextSceneName);
+
+        float timer = 0f;
+        AsyncOperation operation = SceneManager.LoadSceneAsync(nextSceneName);
+
+        if (operation == null)
+        {
+            Debug.LogError("Failed to start async scene load: " + nextSceneName);
+            yield break;
+        }
+
+        operation.allowSceneActivation = false;
+
+        while (operation.progress < 0.9f || timer < asyncLoadMinimumFadeTime)
+        {
+            timer += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        operation.allowSceneActivation = true;
+
+        while (!operation.isDone)
+        {
+            yield return null;
+        }
     }
 }

@@ -52,6 +52,13 @@ public class StartMenuController : MonoBehaviour
             mainPanelCanvasGroup.alpha = 0f;
         }
 
-        SceneManager.LoadScene(nextSceneName);
+        if (!string.IsNullOrEmpty(nextSceneName))
+        {
+            AsyncOperation operation = SceneManager.LoadSceneAsync(nextSceneName);
+            while (operation != null && !operation.isDone)
+            {
+                yield return null;
+            }
+        }
     }
 }

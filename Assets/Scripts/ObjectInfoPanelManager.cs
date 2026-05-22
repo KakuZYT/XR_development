@@ -91,9 +91,12 @@ public class ObjectInfoPanelManager : MonoBehaviour
             return;
         }
 
-        infoText.text =
-            $"<b>{currentInfoData.objectName}</b>\n\n" +
-            currentInfoData.description;
+        infoText.text = ObjectInfoPanelStyleUtility.Format(
+            currentInfoData.objectName,
+            currentInfoData.description
+        );
+
+        ObjectInfoPanelStyleUtility.Apply(infoCanvas, infoText);
 
         KeepCanvasInFrontOfPlayer();
 

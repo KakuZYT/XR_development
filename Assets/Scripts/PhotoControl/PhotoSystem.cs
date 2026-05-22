@@ -1,5 +1,6 @@
 using System.Collections;
 using System.IO;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,6 +12,7 @@ public class PhotoSystem : MonoBehaviour
     [Header("UI")]
     public GameObject photoCanvas;
     public Button takePhotoButton;
+    public string takePhotoButtonLabel = "Capture";
 
     [Header("Photo Effects")]
     public Image flashImage;
@@ -59,6 +61,7 @@ public class PhotoSystem : MonoBehaviour
 
         if (takePhotoButton != null)
         {
+            SetupTakePhotoButton();
             takePhotoButton.onClick.RemoveAllListeners();
             takePhotoButton.onClick.AddListener(TakePhoto);
         }
@@ -107,6 +110,7 @@ public class PhotoSystem : MonoBehaviour
 
                 if (takePhotoButton != null && !isTakingPhoto)
                 {
+                    SetupTakePhotoButton();
                     takePhotoButton.gameObject.SetActive(true);
                 }
 
@@ -470,6 +474,48 @@ public class PhotoSystem : MonoBehaviour
         if (flashImage != null)
         {
             flashImage.transform.SetAsLastSibling();
+        }
+    }
+
+    void SetupTakePhotoButton()
+    {
+        if (takePhotoButton == null)
+        {
+            return;
+        }
+
+        Image buttonImage = takePhotoButton.GetComponent<Image>();
+        if (buttonImage != null)
+        {
+            buttonImage.color = new Color(0.58f, 0.9f, 0.62f, 0.94f);
+            buttonImage.raycastTarget = true;
+        }
+
+        ColorBlock colors = takePhotoButton.colors;
+        colors.normalColor = new Color(0.58f, 0.9f, 0.62f, 0.94f);
+        colors.highlightedColor = new Color(0.72f, 0.96f, 0.76f, 1f);
+        colors.pressedColor = new Color(0.42f, 0.78f, 0.48f, 1f);
+        colors.selectedColor = new Color(0.58f, 0.9f, 0.62f, 1f);
+        takePhotoButton.colors = colors;
+
+        Text label = takePhotoButton.GetComponentInChildren<Text>(true);
+        if (label != null)
+        {
+            label.text = takePhotoButtonLabel;
+            label.color = new Color(0.04f, 0.16f, 0.07f, 1f);
+            label.fontSize = Mathf.Max(label.fontSize, 22);
+            label.fontStyle = FontStyle.Bold;
+            label.alignment = TextAnchor.MiddleCenter;
+        }
+
+        TMP_Text tmpLabel = takePhotoButton.GetComponentInChildren<TMP_Text>(true);
+        if (tmpLabel != null)
+        {
+            tmpLabel.text = takePhotoButtonLabel;
+            tmpLabel.color = new Color(0.04f, 0.16f, 0.07f, 1f);
+            tmpLabel.fontSize = Mathf.Max(tmpLabel.fontSize, 22f);
+            tmpLabel.fontStyle = FontStyles.Bold;
+            tmpLabel.alignment = TextAlignmentOptions.Center;
         }
     }
 

@@ -131,9 +131,12 @@ public class ObjectInfoRaycastViewer : MonoBehaviour
             return;
         }
 
-        infoText.text =
-            $"<b>{infoData.objectName}</b>\n\n" +
-            infoData.description;
+        infoText.text = ObjectInfoPanelStyleUtility.Format(
+            infoData.objectName,
+            infoData.description
+        );
+
+        ObjectInfoPanelStyleUtility.Apply(infoCanvas, infoText);
 
         KeepCanvasInFrontOfPlayer();
 

@@ -175,10 +175,13 @@ public class LaserInfoViewer : MonoBehaviour
 
         if (infoText != null)
         {
-            infoText.text =
-                $"<b>{targetInfo.objectName}</b>\n\n" +
-                targetInfo.description;
+            infoText.text = ObjectInfoPanelStyleUtility.Format(
+                targetInfo.objectName,
+                targetInfo.description
+            );
         }
+
+        ObjectInfoPanelStyleUtility.Apply(infoPanel, infoText);
 
         if (progressCircleObject != null)
         {

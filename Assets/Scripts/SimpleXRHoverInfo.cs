@@ -96,9 +96,10 @@ public class SimpleXRHoverInfo : MonoBehaviour
 
         if (infoText != null)
         {
-            // 这里改为只用一个换行，节省空间
-            infoText.text = $"<b>{objectName}</b>\n{description}";
+            infoText.text = ObjectInfoPanelStyleUtility.Format(objectName, description);
         }
+
+        ObjectInfoPanelStyleUtility.Apply(infoPanel, infoText);
 
         if (infoPanel != null) infoPanel.SetActive(true);
         hoverCoroutine = null;

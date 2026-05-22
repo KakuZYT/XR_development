@@ -1,16 +1,74 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class GlobalClickPauseController : MonoBehaviour
 {
     [SerializeField] private GameObject ignoredGalleryPanel;
     [SerializeField] private string pauseMessage = "Paused\nPress any key to continue";
+    [SerializeField] private string beachSceneName = "01_Beach_StartMenu";
+    [SerializeField] private string returnToBeachButtonText = "Return to Beach";
+
+    private static GlobalClickPauseController instance;
 
     private bool pausedByClick;
     private float timeScaleBeforePause = 1f;
     private GameObject pauseOverlay;
     private Text pauseText;
+    private Button returnToBeachButton;
+
+    public static GlobalClickPauseController Instance
+    {
+        get
+        {
+            return EnsureInstance();
+        }
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void Bootstrap()
+    {
+        EnsureInstance();
+    }
+
+    private static GlobalClickPauseController EnsureInstance()
+    {
+        if (instance != null)
+        {
+            return instance;
+        }
+
+        GlobalClickPauseController existingController = FindFirstObjectByType<GlobalClickPauseController>();
+        if (existingController != null)
+        {
+            instance = existingController;
+            return instance;
+        }
+
+        GameObject pauseObject = new GameObject("GlobalClickPauseController");
+        instance = pauseObject.AddComponent<GlobalClickPauseController>();
+        return instance;
+    }
+
+    private void Awake()
+    {
+        if (instance != null && instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        instance = this;
+        gameObject.name = "GlobalClickPauseController";
+
+        if (transform.parent != null)
+        {
+            transform.SetParent(null);
+        }
+
+        DontDestroyOnLoad(gameObject);
+    }
 
     public void SetIgnoredGallery(GameObject galleryPanel)
     {
@@ -72,13 +130,6 @@ public class GlobalClickPauseController : MonoBehaviour
 
         bool inputPressed = false;
 
-        if (Mouse.current != null)
-        {
-            inputPressed = Mouse.current.leftButton.wasPressedThisFrame
-                || Mouse.current.rightButton.wasPressedThisFrame
-                || Mouse.current.middleButton.wasPressedThisFrame;
-        }
-
         if (Gamepad.current != null)
         {
             inputPressed = inputPressed
@@ -87,11 +138,6 @@ public class GlobalClickPauseController : MonoBehaviour
                 || Gamepad.current.buttonEast.wasPressedThisFrame
                 || Gamepad.current.buttonWest.wasPressedThisFrame
                 || Gamepad.current.startButton.wasPressedThisFrame;
-        }
-
-        if (Touchscreen.current != null)
-        {
-            inputPressed = inputPressed || Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
         }
 
         return inputPressed;
@@ -167,6 +213,55 @@ public class GlobalClickPauseController : MonoBehaviour
         textRect.anchorMax = new Vector2(0.5f, 0.5f);
         textRect.pivot = new Vector2(0.5f, 0.5f);
         textRect.sizeDelta = new Vector2(760f, 180f);
-        textRect.anchoredPosition = Vector2.zero;
+        textRect.anchoredPosition = new Vector2(0f, 60f);
+
+        GameObject buttonObject = new GameObject("ReturnToBeachButton", typeof(RectTransform), typeof(Image), typeof(Button));
+        buttonObject.transform.SetParent(pauseOverlay.transform, false);
+
+        Image buttonImage = buttonObject.GetComponent<Image>();
+        buttonImage.color = new Color(0.62f, 0.84f, 1f, 0.95f);
+        buttonImage.raycastTarget = true;
+
+        returnToBeachButton = buttonObject.GetComponent<Button>();
+        returnToBeachButton.targetGraphic = buttonImage;
+        returnToBeachButton.onClick.AddListener(ReturnToBeach);
+
+        ColorBlock colors = returnToBeachButton.colors;
+        colors.normalColor = new Color(0.62f, 0.84f, 1f, 0.95f);
+        colors.highlightedColor = new Color(0.78f, 0.92f, 1f, 1f);
+        colors.pressedColor = new Color(0.42f, 0.68f, 0.88f, 1f);
+        colors.selectedColor = new Color(0.62f, 0.84f, 1f, 1f);
+        returnToBeachButton.colors = colors;
+
+        RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
+        buttonRect.anchorMin = new Vector2(0.5f, 0.5f);
+        buttonRect.anchorMax = new Vector2(0.5f, 0.5f);
+        buttonRect.pivot = new Vector2(0.5f, 0.5f);
+        buttonRect.sizeDelta = new Vector2(320f, 64f);
+        buttonRect.anchoredPosition = new Vector2(0f, -110f);
+
+        GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(Text));
+        labelObject.transform.SetParent(buttonObject.transform, false);
+
+        Text label = labelObject.GetComponent<Text>();
+        label.text = returnToBeachButtonText;
+        label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        label.fontSize = 24;
+        label.fontStyle = FontStyle.Bold;
+        label.alignment = TextAnchor.MiddleCenter;
+        label.color = Color.black;
+        label.raycastTarget = false;
+
+        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+    }
+
+    private void ReturnToBeach()
+    {
+        ResumeGame();
+        SceneManager.LoadScene(beachSceneName);
     }
 }

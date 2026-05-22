@@ -695,13 +695,7 @@ public class JourneyGalleryController : MonoBehaviour
 
     void SetupGlobalPauseController()
     {
-        GlobalClickPauseController pauseController = FindFirstObjectByType<GlobalClickPauseController>();
-
-        if (pauseController == null)
-        {
-            GameObject pauseObject = new GameObject("GlobalClickPauseController");
-            pauseController = pauseObject.AddComponent<GlobalClickPauseController>();
-        }
+        GlobalClickPauseController pauseController = GlobalClickPauseController.Instance;
 
         globalPauseController = pauseController;
         pauseController.SetIgnoredGallery(galleryCanvas);
