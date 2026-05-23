@@ -89,7 +89,7 @@ public class ObjectInfoRaycastViewer : MonoBehaviour
             sphereRadius,
             rayDistance,
             raycastLayers,
-            QueryTriggerInteraction.Ignore
+            QueryTriggerInteraction.Collide
         );
 
         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
@@ -114,14 +114,31 @@ public class ObjectInfoRaycastViewer : MonoBehaviour
             return null;
         }
 
-        ObjectInfoData infoData = hitObject.GetComponentInParent<ObjectInfoData>();
-
-        if (infoData != null)
+        ObjectInfoData knownAnimalInfo = ObjectInfoData.ResolveKnownAnimalInfo(hitObject.transform);
+        if (knownAnimalInfo != null && knownAnimalInfo.isActiveAndEnabled)
         {
-            return infoData;
+            return knownAnimalInfo;
         }
 
-        return hitObject.GetComponentInChildren<ObjectInfoData>();
+        ObjectInfoData[] parentInfoData = hitObject.GetComponentsInParent<ObjectInfoData>(true);
+        foreach (ObjectInfoData infoData in parentInfoData)
+        {
+            if (infoData != null && infoData.isActiveAndEnabled)
+            {
+                return infoData;
+            }
+        }
+
+        ObjectInfoData[] childInfoData = hitObject.GetComponentsInChildren<ObjectInfoData>(true);
+        foreach (ObjectInfoData infoData in childInfoData)
+        {
+            if (infoData != null && infoData.isActiveAndEnabled)
+            {
+                return infoData;
+            }
+        }
+
+        return null;
     }
 
     private void ShowPanel(ObjectInfoData infoData)

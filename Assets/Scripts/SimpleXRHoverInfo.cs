@@ -32,15 +32,18 @@ public class SimpleXRHoverInfo : MonoBehaviour
 
         if (infoData == null)
         {
-            infoData = GetComponentInParent<ObjectInfoData>();
+            infoData = gameObject.AddComponent<ObjectInfoData>();
+            infoData.objectName = objectName;
+            infoData.description = description;
         }
-
-        if (infoData == null)
+        else if (infoData.IsPlaceholderOrGeneric()
+            && !string.IsNullOrWhiteSpace(objectName)
+            && objectName != "Object Name")
         {
-            infoData = GetComponentInChildren<ObjectInfoData>();
+            infoData.objectName = objectName;
+            infoData.description = description;
         }
-
-        if (infoData != null)
+        else
         {
             objectName = infoData.objectName;
             description = infoData.description;

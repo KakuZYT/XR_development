@@ -14,12 +14,22 @@ public class DescentTransitionController : MonoBehaviour
     [SerializeField] private float startDelay = 0.15f;
     [SerializeField] private int stabilizationFrames = 3;
     [SerializeField] private bool disableCharacterControllerDuringDescent = true;
+    [SerializeField] private bool respectCollisionDuringDescent = true;
+
+    [Header("Controller Pointer Visuals")]
+    [SerializeField] private bool tuneLeftPointerWidth = true;
+    [SerializeField, Range(0.1f, 1f)] private float leftPointerWidthScale = 0.45f;
+
+    [Header("Ambient Audio Transition")]
+    [SerializeField] private bool useDescentAmbientAudio = true;
+    [SerializeField] private float underwaterCrossfadeDuration = 3f;
 
     [Header("Next Scene")]
     [SerializeField] private bool loadNextSceneAfterDescent = false;
     [SerializeField] private string nextSceneName = "03_Coral_Reef_Explore";
 
     private CharacterController characterController;
+    private DescentAmbientAudioController ambientAudioController;
 
     private void Start()
     {
@@ -30,6 +40,18 @@ public class DescentTransitionController : MonoBehaviour
         }
 
         characterController = xrOrigin.GetComponent<CharacterController>();
+        ConfigureControllerPointerVisuals();
+
+        if (useDescentAmbientAudio)
+        {
+            ambientAudioController = GetComponent<DescentAmbientAudioController>();
+
+            if (ambientAudioController == null)
+            {
+                ambientAudioController = gameObject.AddComponent<DescentAmbientAudioController>();
+            }
+        }
+
         StartCoroutine(PlayDescent());
     }
 
@@ -56,6 +78,13 @@ public class DescentTransitionController : MonoBehaviour
             yield return new WaitForSeconds(startDelay);
         }
 
+        if (ambientAudioController != null)
+        {
+            ambientAudioController.CrossfadeToUnderwater(
+                Mathf.Min(Mathf.Max(underwaterCrossfadeDuration, 0.1f), duration)
+            );
+        }
+
         while (timer < duration)
         {
             timer += Time.deltaTime;
@@ -64,12 +93,12 @@ public class DescentTransitionController : MonoBehaviour
             // Smooth movement instead of linear drop.
             float smoothT = Mathf.SmoothStep(0f, 1f, t);
 
-            xrOrigin.position = Vector3.Lerp(startPosition, endPosition, smoothT);
+            MoveRig(Vector3.Lerp(startPosition, endPosition, smoothT));
 
             yield return null;
         }
 
-        xrOrigin.position = endPosition;
+        MoveRig(endPosition);
 
         if (shouldRestoreCharacterController)
         {
@@ -82,6 +111,41 @@ public class DescentTransitionController : MonoBehaviour
             while (operation != null && !operation.isDone)
             {
                 yield return null;
+            }
+        }
+    }
+
+    private void MoveRig(Vector3 targetPosition)
+    {
+        if (respectCollisionDuringDescent && characterController != null && characterController.enabled)
+        {
+            characterController.Move(targetPosition - xrOrigin.position);
+            return;
+        }
+
+        xrOrigin.position = targetPosition;
+    }
+
+    private void ConfigureControllerPointerVisuals()
+    {
+        if (!tuneLeftPointerWidth)
+        {
+            return;
+        }
+
+        foreach (LineRenderer lineRenderer in xrOrigin.GetComponentsInChildren<LineRenderer>(true))
+        {
+            Transform current = lineRenderer.transform;
+
+            while (current != null && current != xrOrigin)
+            {
+                if (current.name == "Left Controller")
+                {
+                    lineRenderer.widthMultiplier *= leftPointerWidthScale;
+                    break;
+                }
+
+                current = current.parent;
             }
         }
     }

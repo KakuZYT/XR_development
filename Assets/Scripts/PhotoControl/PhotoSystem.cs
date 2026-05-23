@@ -85,7 +85,13 @@ public class PhotoSystem : MonoBehaviour
 
         Debug.DrawRay(ray.origin, ray.direction * detectDistance, Color.red);
 
-        RaycastHit[] hits = Physics.SphereCastAll(ray, detectRadius, detectDistance, detectionMask);
+        RaycastHit[] hits = Physics.SphereCastAll(
+            ray,
+            detectRadius,
+            detectDistance,
+            detectionMask,
+            QueryTriggerInteraction.Collide
+        );
         System.Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
 
         for (int i = 0; i < hits.Length; i++)
@@ -142,14 +148,31 @@ public class PhotoSystem : MonoBehaviour
             return null;
         }
 
-        ObjectInfoData infoData = hitObject.GetComponentInParent<ObjectInfoData>();
-
-        if (infoData != null)
+        ObjectInfoData knownAnimalInfo = ObjectInfoData.ResolveKnownAnimalInfo(hitObject.transform);
+        if (knownAnimalInfo != null && knownAnimalInfo.isActiveAndEnabled)
         {
-            return infoData;
+            return knownAnimalInfo;
         }
 
-        return hitObject.GetComponentInChildren<ObjectInfoData>();
+        ObjectInfoData[] parentInfoData = hitObject.GetComponentsInParent<ObjectInfoData>(true);
+        foreach (ObjectInfoData infoData in parentInfoData)
+        {
+            if (infoData != null && infoData.isActiveAndEnabled)
+            {
+                return infoData;
+            }
+        }
+
+        ObjectInfoData[] childInfoData = hitObject.GetComponentsInChildren<ObjectInfoData>(true);
+        foreach (ObjectInfoData infoData in childInfoData)
+        {
+            if (infoData != null && infoData.isActiveAndEnabled)
+            {
+                return infoData;
+            }
+        }
+
+        return null;
     }
 
     public void TakePhoto()
@@ -499,8 +522,16 @@ public class PhotoSystem : MonoBehaviour
         takePhotoButton.colors = colors;
 
         Text label = takePhotoButton.GetComponentInChildren<Text>(true);
+        TMP_Text tmpLabel = takePhotoButton.GetComponentInChildren<TMP_Text>(true);
+
+        if (label == null && tmpLabel == null)
+        {
+            label = CreateTakePhotoButtonLabel();
+        }
+
         if (label != null)
         {
+            label.gameObject.SetActive(true);
             label.text = takePhotoButtonLabel;
             label.color = new Color(0.04f, 0.16f, 0.07f, 1f);
             label.fontSize = Mathf.Max(label.fontSize, 22);
@@ -508,15 +539,36 @@ public class PhotoSystem : MonoBehaviour
             label.alignment = TextAnchor.MiddleCenter;
         }
 
-        TMP_Text tmpLabel = takePhotoButton.GetComponentInChildren<TMP_Text>(true);
         if (tmpLabel != null)
         {
+            tmpLabel.gameObject.SetActive(true);
             tmpLabel.text = takePhotoButtonLabel;
             tmpLabel.color = new Color(0.04f, 0.16f, 0.07f, 1f);
             tmpLabel.fontSize = Mathf.Max(tmpLabel.fontSize, 22f);
             tmpLabel.fontStyle = FontStyles.Bold;
             tmpLabel.alignment = TextAlignmentOptions.Center;
         }
+    }
+
+    Text CreateTakePhotoButtonLabel()
+    {
+        GameObject labelObject = new GameObject("CaptureLabel", typeof(RectTransform), typeof(Text));
+        labelObject.transform.SetParent(takePhotoButton.transform, false);
+
+        Text label = labelObject.GetComponent<Text>();
+        label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        label.raycastTarget = false;
+        label.resizeTextForBestFit = true;
+        label.resizeTextMinSize = 14;
+        label.resizeTextMaxSize = 24;
+
+        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+
+        return label;
     }
 
     string GetImgFolderPath()

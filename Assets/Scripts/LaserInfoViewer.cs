@@ -14,6 +14,10 @@ public class LaserInfoViewer : MonoBehaviour
     [SerializeField] private float showDelay = 3f;
     [SerializeField] private LayerMask raycastLayers = ~0;
 
+    [Header("Target Support")]
+    [SerializeField] private bool createMissingTargetColliders = true;
+    [SerializeField] private float minimumGeneratedColliderSize = 0.15f;
+
     [Header("UI References")]
     [SerializeField] private GameObject progressCircleObject;
     [SerializeField] private Image progressCircleImage;
@@ -24,6 +28,7 @@ public class LaserInfoViewer : MonoBehaviour
     [SerializeField] private Color normalLaserColor = Color.white;
     [SerializeField] private Color targetLaserColor = Color.cyan;
     [SerializeField] private float laserWidth = 0.015f;
+    [SerializeField] private bool showLaserWithoutTarget = false;
 
     private LineRenderer lineRenderer;
     private ObjectInfoData currentTarget;
@@ -43,6 +48,16 @@ public class LaserInfoViewer : MonoBehaviour
         lineRenderer.material = laserMaterial;
 
         HideAllUI();
+    }
+
+    private void Start()
+    {
+        ObjectInfoData.EnsureKnownAnimalInfoInScene();
+
+        if (createMissingTargetColliders)
+        {
+            EnsureInfoTargetsHaveColliders();
+        }
     }
 
     private void Update()
@@ -69,7 +84,15 @@ public class LaserInfoViewer : MonoBehaviour
 
         if (targetInfo == null)
         {
-            DrawLaser(start, end, normalLaserColor);
+            if (showLaserWithoutTarget)
+            {
+                DrawLaser(start, end, normalLaserColor);
+            }
+            else
+            {
+                HideLaser();
+            }
+
             ClearTarget();
             return;
         }
@@ -130,7 +153,7 @@ public class LaserInfoViewer : MonoBehaviour
             sphereRadius,
             rayDistance,
             raycastLayers,
-            QueryTriggerInteraction.Ignore
+            QueryTriggerInteraction.Collide
         );
 
         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
@@ -156,14 +179,120 @@ public class LaserInfoViewer : MonoBehaviour
             return null;
         }
 
-        ObjectInfoData infoData = hitObject.GetComponentInParent<ObjectInfoData>();
-
-        if (infoData != null)
+        ObjectInfoData knownAnimalInfo = ObjectInfoData.ResolveKnownAnimalInfo(hitObject.transform);
+        if (knownAnimalInfo != null && knownAnimalInfo.isActiveAndEnabled)
         {
-            return infoData;
+            return knownAnimalInfo;
         }
 
-        return hitObject.GetComponentInChildren<ObjectInfoData>();
+        ObjectInfoData[] parentInfoData = hitObject.GetComponentsInParent<ObjectInfoData>(true);
+        foreach (ObjectInfoData infoData in parentInfoData)
+        {
+            if (infoData != null && infoData.isActiveAndEnabled)
+            {
+                return infoData;
+            }
+        }
+
+        ObjectInfoData[] childInfoData = hitObject.GetComponentsInChildren<ObjectInfoData>(true);
+        foreach (ObjectInfoData infoData in childInfoData)
+        {
+            if (infoData != null && infoData.isActiveAndEnabled)
+            {
+                return infoData;
+            }
+        }
+
+        return null;
+    }
+
+    private void EnsureInfoTargetsHaveColliders()
+    {
+        ObjectInfoData[] targets = FindObjectsByType<ObjectInfoData>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None
+        );
+
+        foreach (ObjectInfoData target in targets)
+        {
+            if (target == null || !target.isActiveAndEnabled || HasEnabledCollider(target.transform))
+            {
+                continue;
+            }
+
+            if (!TryGetLocalRendererBounds(target.transform, out Bounds localBounds))
+            {
+                continue;
+            }
+
+            BoxCollider collider = target.gameObject.AddComponent<BoxCollider>();
+            collider.isTrigger = true;
+            collider.center = localBounds.center;
+            collider.size = new Vector3(
+                Mathf.Max(localBounds.size.x, minimumGeneratedColliderSize),
+                Mathf.Max(localBounds.size.y, minimumGeneratedColliderSize),
+                Mathf.Max(localBounds.size.z, minimumGeneratedColliderSize)
+            );
+        }
+    }
+
+    private static bool HasEnabledCollider(Transform targetRoot)
+    {
+        Collider[] colliders = targetRoot.GetComponentsInChildren<Collider>(true);
+
+        foreach (Collider collider in colliders)
+        {
+            if (collider != null && collider.enabled)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryGetLocalRendererBounds(Transform targetRoot, out Bounds localBounds)
+    {
+        Renderer[] renderers = targetRoot.GetComponentsInChildren<Renderer>(true);
+        localBounds = default;
+        bool foundRenderer = false;
+
+        foreach (Renderer renderer in renderers)
+        {
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            Bounds bounds = renderer.bounds;
+
+            for (int x = -1; x <= 1; x += 2)
+            {
+                for (int y = -1; y <= 1; y += 2)
+                {
+                    for (int z = -1; z <= 1; z += 2)
+                    {
+                        Vector3 worldCorner = bounds.center + Vector3.Scale(
+                            bounds.extents,
+                            new Vector3(x, y, z)
+                        );
+                        Vector3 localCorner = targetRoot.InverseTransformPoint(worldCorner);
+
+                        if (!foundRenderer)
+                        {
+                            localBounds = new Bounds(localCorner, Vector3.zero);
+                            foundRenderer = true;
+                        }
+                        else
+                        {
+                            localBounds.Encapsulate(localCorner);
+                        }
+                    }
+                }
+            }
+        }
+
+        return foundRenderer;
     }
 
     private void ShowInfoPanel(ObjectInfoData targetInfo)
